@@ -2,6 +2,9 @@ const { ref, reactive, computed, onBeforeUnmount } = Vue;
 
 const app = {
     setup() {
+        // -----------------------------------------------------------------------------
+        // Состояние
+        // -----------------------------------------------------------------------------
         const ws = ref(null);
         const wsUrl = ref('ws://localhost:8080');
         const pingTimer = ref(null);
@@ -17,14 +20,15 @@ const app = {
         });
         const placements = reactive(new Map());
 
-        const connected = computed(
-            () => ws.value && ws.value.readyState === WebSocket.OPEN
-        );
+        // -----------------------------------------------------------------------------
+        // Вычисляемые свойства
+        // -----------------------------------------------------------------------------
+        const connected = computed(() => ws.value && ws.value.readyState === WebSocket.OPEN);
         const placementsArray = computed(() => Array.from(placements.values()));
 
-        // ----------------------
+        // -----------------------------------------------------------------------------
         // WebSocket события
-        // ----------------------
+        // -----------------------------------------------------------------------------
         function handleOpen() {
             sendCommand(form.id, CommandID.CONNECT);
             startPingTimer();
@@ -45,14 +49,16 @@ const app = {
                 case MessageType.COMMAND: {
                     const cmd = deserializeCommand(buffer);
                     if (!cmd) return;
-                    if (cmd.cmd === CommandID.DISCONNECT)
-                        placements.delete(cmd.id);
+
+                    if (cmd.cmd === CommandID.DISCONNECT) placements.delete(cmd.id);
+
                     break;
                 }
 
                 case MessageType.PLACEMENT: {
                     const arr = deserializePlacements(buffer);
                     for (const p of arr) placements.set(p.id, p);
+
                     break;
                 }
 
@@ -61,41 +67,44 @@ const app = {
             }
         }
 
-        // ----------------------
+        // -----------------------------------------------------------------------------
         // Таймер пинга
-        // ----------------------
+        // -----------------------------------------------------------------------------
         function startPingTimer() {
             stopPingTimer(); // останавливаем старый таймер, если есть
+
             pingTimer.value = setInterval(() => {
                 if (connected.value) sendCommand(form.id, CommandID.PING);
             }, 3000);
         }
 
         function stopPingTimer() {
-            if (pingTimer.value) {
-                clearInterval(pingTimer.value);
-                pingTimer.value = null;
-            }
+            if (!pingTimer.value) return;
+
+            clearInterval(pingTimer.value);
+            pingTimer.value = null;
         }
 
-        // ----------------------
+        // -----------------------------------------------------------------------------
         // Отправка данных
-        // ----------------------
+        // -----------------------------------------------------------------------------
         function sendCommand(id, cmd) {
             if (!connected.value) return;
+
             ws.value.send(serializeCommand(id, cmd));
         }
 
         function sendPlacement() {
             if (!connected.value) return;
+
             ws.value.send(serializePlacement(form));
             // Перезапуск таймера при отправке Placement
             startPingTimer();
         }
 
-        // ----------------------
+        // -----------------------------------------------------------------------------
         // Подключение / отключение
-        // ----------------------
+        // -----------------------------------------------------------------------------
         function toggleConnection() {
             if (connected.value) {
                 sendCommand(form.id, CommandID.DISCONNECT);
@@ -112,11 +121,12 @@ const app = {
             ws.value.onmessage = handleMessage;
         }
 
-        // ----------------------
+        // -----------------------------------------------------------------------------
         // Очистка при размонтировании
-        // ----------------------
+        // -----------------------------------------------------------------------------
         onBeforeUnmount(() => {
             stopPingTimer();
+
             if (ws.value && connected.value) ws.value.close();
         });
 

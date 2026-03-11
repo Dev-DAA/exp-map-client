@@ -1,47 +1,59 @@
-// types mapping
+// -----------------------------------------------------------------------------
+// types mapping: соответствие типов JS и DataView
+// -----------------------------------------------------------------------------
 const typeMap = {
     uint8: { size: 1, getter: 'getUint8', setter: 'setUint8' },
     uint32: { size: 4, getter: 'getUint32', setter: 'setUint32' },
     float32: { size: 4, getter: 'getFloat32', setter: 'setFloat32' },
 };
 
-// Генератор структур: принимает описание полей и типов, возвращает функции кодирования и декодирования
+// -----------------------------------------------------------------------------
+// createStructMethods
+// Функция, которая генерирует encode/decode для структуры
+// structDef: объект вида { fieldName: type }
+// Например: { type:'uint8', cmd:'uint8', id:'uint32' }
+// -----------------------------------------------------------------------------
 function createStructMethods(structDef) {
     const fields = Object.entries(structDef);
 
-    // вычисляем offsets и размер структуры
+    // вычисляем offsets для каждого поля и общий размер структуры
     let size = 0;
     const offsets = {};
+
     for (const [name, type] of fields) {
         offsets[name] = size;
         size += typeMap[type].size;
     }
 
+    // encode: объект JS → ArrayBuffer
     function encode(obj) {
         const buffer = new ArrayBuffer(size);
         const view = new DataView(buffer);
+
         for (const [name, type] of fields) {
-            const val = obj[name] ?? 0;
-            view[typeMap[type].setter](offsets[name], val, true);
+            const val = obj[name] ?? 0; // если поле не указано, используем 0
+            view[typeMap[type].setter](offsets[name], val, true); // little-endian
         }
         return buffer;
     }
 
+    // decode: ArrayBuffer → объект JS
     function decode(buffer) {
         const view = new DataView(buffer);
         const obj = {};
-        for (const [name, type] of fields) {
+
+        for (const [name, type] of fields)
             obj[name] = view[typeMap[type].getter](offsets[name], true);
-        }
+
         return obj;
     }
 
     return { size, encode, decode };
 }
 
-// -----------------------------
+// -----------------------------------------------------------------------------
 // Определяем структуры
-// -----------------------------
+// -----------------------------------------------------------------------------
 
 // Command: type=0, cmd=[0-connect,1-disconnect,2-ping], id:uint32
 const CommandStruct = { type: 'uint8', cmd: 'uint8', id: 'uint32' };
@@ -60,42 +72,45 @@ const PlacementStruct = {
 };
 const Placement = createStructMethods(PlacementStruct);
 
-// -----------------------------
-// Вспомогательные функции
-// -----------------------------
+// -----------------------------------------------------------------------------
+// Вспомогательные функции для работы с WebSocket
+// -----------------------------------------------------------------------------
 
+// Сериализация Command
 function serializeCommand(id, cmd) {
-    return Command.encode({ type: 0, cmd, id });
+    return Command.encode({ type: MessageType.COMMAND, cmd, id });
 }
 
+// Десериализация Command,
 function deserializeCommand(buffer) {
     const obj = Command.decode(buffer);
-    if (obj.type !== 0) return null;
+    if (obj.type !== MessageType.COMMAND) return null;
+
     return obj;
 }
 
+// Сериализация Placement
 function serializePlacement(obj) {
-    return Placement.encode({ type: 1, ...obj });
+    return Placement.encode({ type: MessageType.PLACEMENT, ...obj });
 }
 
+// Десериализация массива Placements
 function deserializePlacements(buffer) {
     const arr = [];
     const structSize = Placement.size;
-    for (
-        let offset = 0;
-        offset + structSize <= buffer.byteLength;
-        offset += structSize
-    ) {
+
+    for (let offset = 0; offset + structSize <= buffer.byteLength; offset += structSize) {
         const slice = buffer.slice(offset, offset + structSize);
         const p = Placement.decode(slice);
-        if (p.type === 1) arr.push(p);
+
+        if (p.type === MessageType.PLACEMENT) arr.push(p);
     }
     return arr;
 }
 
-// -----------------------------
+// -----------------------------------------------------------------------------
 // Константы
-// -----------------------------
+// -----------------------------------------------------------------------------
 const MessageType = { COMMAND: 0, PLACEMENT: 1 };
 const CommandID = { CONNECT: 0, DISCONNECT: 1, PING: 2 };
 
