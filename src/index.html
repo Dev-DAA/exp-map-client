@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Placement Client</title>
+
+    <!-- Стили -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+    <!-- Протокол: сериализация/десериализация -->
+    <script src="protocol.js"></script>
+
+    <!-- Основной JS (Composition API) -->
+    <script src="app.js"></script>
+
+</head>
+
+<body>
+
+    <div id="app">
+
+        <div class="block">
+            <div class="server-row">
+                <input v-model="wsUrl">
+                <button @click="toggleConnection">{{ connected ? 'Disconnect' : 'Connect' }}</button>
+            </div>
+        </div>
+
+        <div class="layout">
+
+            <div class="block form-panel">
+                <div class="field"><label>ID</label><input v-model.number="form.id"></div>
+                <div class="field"><label>X</label><input v-model.number="form.x"></div>
+                <div class="field"><label>Y</label><input v-model.number="form.y"></div>
+                <div class="field"><label>Z</label><input v-model.number="form.z"></div>
+                <div class="field"><label>Rot X</label><input v-model.number="form.rot_x"></div>
+                <div class="field"><label>Rot Y</label><input v-model.number="form.rot_y"></div>
+                <div class="field"><label>Rot Z</label><input v-model.number="form.rot_z"></div>
+                <button @click="sendPlacement" :disabled="!connected">Send</button>
+            </div>
+
+            <div class="block table-panel">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>Rot X</th>
+                            <th>Rot Y</th>
+                            <th>Rot Z</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="p in placementsArray" :key="p.id">
+                            <td>{{p.id}}</td>
+                            <td>{{p.x}}</td>
+                            <td>{{p.y}}</td>
+                            <td>{{p.z}}</td>
+                            <td>{{p.rot_x}}</td>
+                            <td>{{p.rot_y}}</td>
+                            <td>{{p.rot_z}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

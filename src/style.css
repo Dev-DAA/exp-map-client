@@ -1,0 +1,63 @@
+body {
+    font-family: Arial;
+    margin: 20px;
+}
+
+.block {
+    margin-bottom: 12px;
+    padding: 12px;
+}
+
+.server-row {
+    display: flex;
+    gap: 10px;
+}
+
+.server-row input {
+    flex: 1;
+    padding: 4px;
+}
+
+.layout {
+    display: flex;
+    gap: 20px;
+}
+
+.form-panel {
+    width: 260px;
+}
+
+.table-panel {
+    flex: 1;
+}
+
+.field {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+}
+
+.field label {
+    width: 70px;
+    font-weight: bold;
+}
+
+.field input {
+    flex: 1;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    border: 1px solid #999;
+    padding: 4px 8px;
+    text-align: right;
+}
+
+th {
+    background: #f0f0f0;
+}
